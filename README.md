@@ -17,8 +17,8 @@ The point of the template is this split:
 
 | Path | What it is |
 | --- | --- |
-| `skills/auto-tdd/` | The autonomous TDD process (red → green → refactor → deglaze → commit) |
-| `skills/tdd/`, `skills/deglaze/` | The parent skills it builds on |
+| `.claude/skills/auto-tdd/` | The autonomous TDD process (red → green → refactor → deglaze → commit) |
+| `.claude/skills/tdd/`, `.claude/skills/deglaze/` | The parent skills it builds on |
 | `.claude/agents/tdd-developer.md` | The "simulated developer" subagent that reviews each gate |
 | `.claude/hooks/` + `.claude/settings.json` | RED-before-GREEN gate + test-state observer |
 | `.claude/spec-tdd.json` | **Opt-in switch** — the hooks only act when `{"enforce": true}` is here |
@@ -134,7 +134,7 @@ a manifest at `.claude-plugin/plugin.json`:
 ```
 spec-tdd/                         # plugin root
 ├── .claude-plugin/plugin.json    # manifest (name, version, description)
-├── skills/{auto-tdd,tdd,deglaze}/  # moved up from skills/ (same files)
+├── skills/{auto-tdd,tdd,deglaze}/  # moved up from .claude/skills/ (same files)
 ├── agents/tdd-developer.md       # moved up from .claude/agents/
 ├── hooks/hooks.json              # the hook config from .claude/settings.json
 ├── .claude/hooks/*.py            # the hook scripts (can stay; see paths below)
