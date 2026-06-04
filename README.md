@@ -43,12 +43,16 @@ template pre-approves exactly those in `.claude/settings.json`
 so the run proceeds without stopping to ask. Two things make this actually
 work:
 
-1. **The skill always runs the suite the same way: `python -m pytest`** (from
-   the project root, no `PYTHONPATH=`, no `source`, no `python3`). Claude Code's
-   "don't ask again" matches a *command prefix*, so the one allowlisted form
-   `Bash(python -m pytest:*)` covers every test run. Drift — a stray
-   `PYTHONPATH=src`, a `source .venv/...`, an explicit test path — defeats the
-   match and forces a fresh prompt. The skill states this as a hard rule.
+1. **The skill always runs the suite the same way: `.venv/bin/python -m pytest`**
+   (from the project root, no `PYTHONPATH=`, no `source`, no bare `python`).
+   Calling the venv interpreter by path means it works with no activation —
+   bare `python` would resolve to system python (no pytest) unless a shell
+   happened to activate the venv first. Claude Code's "don't ask again" matches
+   a *command prefix*, so the one allowlisted form
+   `Bash(.venv/bin/python -m pytest:*)` covers every test run. Drift — a stray
+   `PYTHONPATH=src`, a `source .venv/...`, bare `python`, an explicit test
+   path — defeats the match and forces a fresh prompt. The skill states this as
+   a hard rule.
 2. **`setup.sh` does the one-time operations** (venv, `git init`, creating
    `DEV_LOG.md`) *before* the run, so they never prompt mid-run.
 
@@ -136,11 +140,12 @@ interprets and carries over unchanged.
 The MCP logic ships with its own tests:
 
 ```sh
-cd spec-mcp && python -m pytest test_spec_lib.py
+cd spec-mcp && ../.venv/bin/python -m pytest test_spec_lib.py
 ```
 
 These are self-contained (they write tiny temp specs) and should pass in a
-fresh copy before you add anything.
+fresh copy before you add anything. (Calling `../.venv/bin/python` by path
+works whether or not you've activated the venv.)
 
 ## Future: promoting this template to a Claude Code plugin
 
