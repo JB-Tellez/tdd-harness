@@ -109,6 +109,25 @@ Stop and escalate to the human if:
 
 ## DEV_LOG format
 
+**Why a DEV_LOG when git already records history?** Because the two capture
+different things, and the split is deliberate:
+
+- **git owns the *what*** — the verifiable diff of each cycle. Never hand-write
+  "what changed" into the DEV_LOG; git records it better (it can't drift from
+  the actual code, and it's queryable via `git log`/`git blame`). Duplicating
+  it just creates a second record that can lie.
+- **DEV_LOG owns the *why*** — the reasoning a commit can't hold: the
+  architectural commitments the RED gate surfaced, where the simulated
+  developer pushed back, where you fell back to a default, where deglaze
+  drifted. A one-line commit subject can't carry this; the DEV_LOG can.
+
+So write the DEV_LOG *per cycle, as you go* (not batched at the end), and keep
+it to decisions and escalations — let the diff speak for the code. (For very
+long production runs where the DEV_LOG would grow unwieldy, a commit-centric
+variant — verbatim gate reviews in commit bodies, DEV_LOG as a thin index — is
+a reasonable alternative; the default here keeps everything in the DEV_LOG so a
+reviewer can read the run's arc in one file.)
+
 `DEV_LOG.md` at the project root. Append-only. One section per cycle. Header (write once at project setup):
 
 ```markdown
