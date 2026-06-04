@@ -1,289 +1,119 @@
-# tdd-harness — a portable spec-driven TDD harness
+# tdd-harness — spec-driven TDD template
 
-This is a **copyable starter** for building a Python project from a Gherkin
-spec using autonomous, gated TDD. Drop in your feature files, point Claude
-Code at the folder, run `/auto-tdd`, and the source and tests get generated —
-one small red-green-refactor cycle per scenario, with a decision log you
-review at the end.
+A copyable Python project template for building from Gherkin specs using autonomous, gated TDD.
 
-## What's harness vs. what you provide
-
-The point of the template is this split:
-
-**The harness (don't edit unless you mean to):**
-
-| Path | What it is |
-| --- | --- |
-| `.claude/skills/auto-tdd/` | The autonomous TDD process (red → green → refactor → deglaze → commit) |
-| `.claude/skills/tdd/`, `.claude/skills/deglaze/` | The parent skills it builds on |
-| `.claude/agents/tdd-developer.md` | The "simulated developer" subagent that reviews each gate |
-| `.claude/hooks/` | RED-before-GREEN gate + test-state observer + canonical-pytest enforcer (scripts) |
-| `.claude/settings.json` | Wires the hooks + pre-approves the run's commands (`permissions.allow`) so it runs unattended |
-| `.claude/tdd-harness.json` | **Opt-in switch** — the hooks only act when `{"enforce": true}` is here |
-| `spec-mcp/` + `.mcp.json` | Exposes your `features/` as queryable tools |
-| `AGENTS.md`, `pytest.ini`, `pyrightconfig.json`, `requirements.txt` | Conventions + tooling config |
-
-> **Hook gating.** The hooks are inert unless `.claude/tdd-harness.json` contains
-> `{"enforce": true}`. The template ships it on, so a copied project enforces
-> RED-before-GREEN out of the box. This matters most for the *plugin* future
-> (below): a globally-enabled plugin would otherwise fire its hooks in every
-> repo you open and block edits in projects that never opted in. The gate keeps
-> it dormant everywhere except where you said `enforce`. To disable in a copied
-> project, set `"enforce": false` (or delete the file).
-
-## Running unattended (few/no approval prompts)
-
-A `/auto-tdd` run does the same handful of operations over and over — run
-pytest, read/write files, git add/commit, and query the `spec` MCP server. The
-template pre-approves exactly those in `.claude/settings.json`
-(`permissions.allow`, including `mcp__spec` for all the spec server's tools),
-so the run proceeds without stopping to ask. Two things make this actually
-work:
-
-1. **The skill always runs the suite the same way: `.venv/bin/python -m pytest`**
-   (from the project root, no `PYTHONPATH=`, no `source`, no bare `python`).
-   Calling the venv interpreter by path means it works with no activation —
-   bare `python` would resolve to system python (no pytest) unless a shell
-   happened to activate the venv first. Claude Code's "don't ask again" matches
-   a *command prefix*, so the one allowlisted form
-   `Bash(.venv/bin/python -m pytest:*)` covers every test run. Drift — a stray
-   `PYTHONPATH=src`, a `source .venv/...`, bare `python`, an explicit test
-   path — defeats the match and forces a fresh prompt. The skill states this as
-   a hard rule, and a `PreToolUse` hook (`enforce_canonical_pytest.py`)
-   *enforces* it: any non-canonical pytest command is blocked with a message
-   telling the agent the right form, so drift self-corrects instead of
-   prompting. (Reading files is likewise pushed to the Read tool, not
-   `cat`/`find -exec`, which can't be auto-approved.)
-2. **`setup.sh` does the one-time operations** (venv, `git init`, creating
-   `DEV_LOG.md`) *before* the run, so they never prompt mid-run.
-
-### Why a targeted allowlist, not a blanket bypass
-
-Claude Code does offer a way to skip *every* prompt — `"defaultMode":
-"bypassPermissions"` (the "YOLO" switch). **We deliberately don't use it here,
-and don't teach it.** A template that gets copied into project after project
-shouldn't carry a setting that lets the agent run any command unchecked; the
-blast radius of one wrong call is too large for something meant to be reused.
-
-So instead we enumerate the specific commands the workflow needs and approve
-only those. The honest trade-off: an allowlist is never complete. The agent
-will occasionally reach for a command we didn't anticipate, and that one will
-prompt. We treat that as expected — approve it in the moment, and if it's a
-command the workflow genuinely needs every run, add it to `permissions.allow`
-then. The allowlist converges by use, not by trying to predict everything up
-front. Prefer this narrowing-over-time approach to flipping on a bypass.
-
-**Adding rules mid-session.** You don't have to stop and hand-edit JSON. When a
-command prompts and you expect to need it again, you can just tell the agent in
-plain language — e.g. *"add `.venv/bin/python -m pytest` to the allowlist in
-`.claude/settings.json`"* — and it edits `permissions.allow` for you. Claude
-Code reloads permission rules immediately, so the new rule takes effect for the
-rest of the session without a restart. (The prompt's own "Yes, and don't ask
-again" option also persists the rule, though which file it writes to isn't
-documented — instructing the agent to edit a named file is the predictable
-way.) Each project will surface its own commands this way, so expect to grow
-the list a little the first few runs on a new spec.
-
-Where to put the rule: a rule the whole team should trust goes in the
-committed `.claude/settings.json`; a personal or still-being-vetted one goes in
-the git-ignored `.claude/settings.local.json`. When in doubt, start local and
-promote it to the shared file once you're confident.
-
-(If you truly want zero prompts for a *throwaway* trial in a disposable
-directory, `bypassPermissions` exists — set it in the git-ignored
-`.claude/settings.local.json` so it never ships with the template. But that's
-an escape hatch for scratch work, not how the workflow is meant to run.)
-
-**The gating hooks still fire regardless.** Pre-approving permissions does not
-disable the RED-before-GREEN hook — hooks run before permission rules and can
-still block. So "no prompts" removes *friction*, not *discipline*.
-
-**What you provide / what gets generated:**
-
-| Path | Role |
-| --- | --- |
-| `features/*.feature` | **Input** — you write these (replace `example.feature`) |
-| `src/` | **Output** — production code, generated per cycle |
-| `tests/` | **Output** — one test per scenario, generated per cycle |
-| `DEV_LOG.md` | **Output** — the run's decision log (created on first run) |
-
-## Using it
+## Quick start
 
 ```sh
-# 1. Copy the template to your new project
+# 1. Copy this template
 cp -R templates/tdd-harness ~/my-new-project
 cd ~/my-new-project
 
-# 2. Set up the environment (venv + deps + a selftest)
+# 2. Set up the environment
 ./setup.sh
 
-# 3. Replace features/example.feature with your real behaviors
-#    (add as many .feature files as you like; re-run ./setup.sh to confirm
-#     they're picked up)
+# 3. Replace features/example.feature with your behaviors
+#    (edit as many .feature files as needed)
 
-# 4. Open Claude Code IN THIS FOLDER (important — see note below), then:
+# 4. Open Claude Code in this folder, then run:
 #    /auto-tdd
 ```
 
-`setup.sh` is idempotent — re-run it any time (e.g. after adding feature
-files) to reinstall and re-print the scenarios the harness can see.
+The agent reads your scenarios and drives one TDD cycle per scenario. When done, review `DEV_LOG.md` and the generated code.
 
-The agent reads your scenarios, then drives one TDD cycle per scenario. When
-it finishes, review `DEV_LOG.md` and the generated code — see the course's
-`docs/verifying-an-auto-tdd-run.md` for a verification checklist.
+## What it does
 
-<details>
-<summary>What <code>setup.sh</code> does (if you'd rather run it by hand)</summary>
+- **RED:** Writes one failing test per scenario
+- **GREEN:** Minimal code to pass
+- **REFACTOR:** Optional cleanup (reviewer decides)
+- **Deglaze:** Pre-commit engagement check
+- **Commit:** Logs the cycle with decision rationale
 
-```sh
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pip install -r spec-mcp/requirements.txt   # only if you want the spec MCP
-python spec-mcp/spec_server.py --selftest  # confirms it sees your features
-```
-</details>
+One small cycle per scenario, end-to-end, with a decision log you review after.
 
-## Important: open Claude Code with this folder as the project root
+## Structure
 
-`.mcp.json` resolves the MCP server via `${CLAUDE_PROJECT_DIR:-.}`, and the
-hooks resolve paths the same way. Both assume **this directory** is the
-project root. If you open Claude Code one level up, the MCP server and hooks
-won't find the venv or the specs.
+**You provide:**
+- `features/*.feature` — Your Gherkin scenarios
 
-## Adapting to a non-Python project
+**Gets generated:**
+- `src/` — Production code (one cycle per scenario)
+- `tests/` — Tests (one per scenario)
+- `DEV_LOG.md` — Decision log from the run
 
-The workflow is language-agnostic; two pieces are not, and would need editing:
+**The harness (don't edit):**
+- `.claude/skills/` — TDD process definition
+- `.claude/agents/` — Simulated developer persona
+- `.claude/hooks/` — Validation (RED-before-GREEN, canonical pytest)
+- `.claude/settings.json` — Pre-approved commands so runs proceed unattended
+- `spec-mcp/` — Makes your scenarios queryable to the agent
 
-- **The hooks** (`.claude/hooks/`) shell out to `pytest`. For Node, swap the
-  runner invocation in `_testlib.py` (e.g. `jest`/`vitest`) — the
-  RED-before-GREEN *logic* is unchanged, only the command and exit-code
-  handling differ.
-- **The spec MCP** (`spec-mcp/spec_lib.py`) greps for `def test_` to find
-  tests. For another language, change `collect_test_names` to match that
-  test-naming convention.
+See [AGENTS.md](AGENTS.md) for details on the process and personas.
 
-Everything else — the skills, the agent, the settings — is text the agent
-interprets and carries over unchanged.
+## Important: open Claude Code in this folder
 
-## Verifying the harness itself
+`.mcp.json` and the hooks resolve paths relative to the project root. Open Claude Code with **this directory** as the project root, not a parent folder.
 
-The MCP logic ships with its own tests:
+## Why no prompts
+
+A `/auto-tdd` run does the same few operations repeatedly (run pytest, read/write, commit, query specs). The template pre-approves exactly those in `.claude/settings.json`, so the run proceeds without stopping to ask.
+
+Two things make it work:
+
+1. **Canonical pytest command** — Tests always run as `.venv/bin/python -m pytest` (from project root, no `PYTHONPATH=`, no `source`, no bare `python`). This exact form is pre-approved; drift forces a new prompt. A `PreToolUse` hook blocks non-canonical forms and tells the agent the right way, so drift self-corrects instead of prompting.
+
+2. **`setup.sh` runs one-time operations first** — venv, git init, `DEV_LOG.md` — so they never prompt mid-run.
+
+### Why not just bypass all prompts
+
+The template has a targeted allowlist, not a blanket bypass (`bypassPermissions`). A template copied into project after project shouldn't carry a setting that lets commands run unchecked. The trade-off is honest: an allowlist is never complete, so the agent will occasionally hit an unanticipated command. When it does, approve it in the moment, then add it to `permissions.allow` if it's genuinely part of the workflow. The allowlist converges by use.
+
+You can tell the agent to edit the file directly (e.g., "add this command to the allowlist") and Claude Code reloads rules immediately.
+
+For true throwaway trial work, you can set `"defaultMode": "bypassPermissions"` in `.claude/settings.local.json` (git-ignored), but that's an escape hatch, not how the workflow is meant to run.
+
+### Discipline isn't bypassed
+
+Pre-approving permissions removes friction, not discipline. The RED-before-GREEN hook still fires regardless and can still block, so "no prompts" ≠ "no gates."
+
+## Adapting to non-Python projects
+
+The workflow is language-agnostic. Two pieces need editing:
+
+- **Hooks** (`.claude/hooks/`) — Currently shell out to `pytest`. For Node, edit the runner in `_testlib.py` (e.g., `jest`/`vitest`); the RED-before-GREEN *logic* stays the same.
+- **Spec MCP** (`spec-mcp/spec_lib.py`) — Currently greps for `def test_`. For another language, change `collect_test_names` to match that language's test convention.
+
+Everything else — skills, agent, settings — is text the agent reads unchanged.
+
+## Verifying the harness
+
+The MCP server ships with self-tests:
 
 ```sh
 cd spec-mcp && ../.venv/bin/python -m pytest test_spec_lib.py
 ```
 
-These are self-contained (they write tiny temp specs) and should pass in a
-fresh copy before you add anything. (Calling `../.venv/bin/python` by path
-works whether or not you've activated the venv.)
+Run these in a fresh copy before adding anything to confirm the harness itself works.
 
-## Future: promoting this template to a Claude Code plugin
+## How it works: RED-before-GREEN
 
-**Not done yet — this is the planned next step.** Copying the folder works, but
-a *plugin* would make the harness installable once and available in every
-project, with no file-copying and version management built in. When we do
-this, here's the shape and the one real gotcha.
+The hook system prevents a common mistake: writing code without a failing test first. When `.claude/tdd-harness.json` has `{"enforce": true}`, a `PreToolUse` hook blocks any edit to `src/` unless:
 
-### Why promote it
+- The test suite is currently failing (there's a test to drive), *or*
+- The current edit is a refactor (suite is green and we're changing structure, not behavior)
 
-- Install once (`claude plugin install tdd-harness`), use in any repo — no `cp -R`.
-- Version-managed: pin a version, update centrally.
-- The skills become namespaced (`/tdd-harness:auto-tdd`), so they don't collide
-  with a project's own skills.
+This is a load-bearing constraint: it's how autonomous runs stay disciplined without a human at the gate.
 
-### The structure change (project layout → plugin layout)
+**Hook gating.** The hooks are inert unless `.claude/tdd-harness.json` contains `{"enforce": true}`. The template ships it on. To disable, set `"enforce": false` (or delete the file). This matters for the future plugin scenario: a globally-enabled plugin would otherwise fire its hooks in every repo you open. The gate keeps it dormant everywhere except where you said "enforce."
 
-A plugin keeps its components at the plugin *root* (not under `.claude/`), with
-a manifest at `.claude-plugin/plugin.json`:
+## Integration with other tools
 
-```
-tdd-harness/                      # plugin root
-├── .claude-plugin/plugin.json    # manifest (name, version, description)
-├── skills/{auto-tdd,tdd,deglaze}/  # moved up from .claude/skills/ (same files)
-├── agents/tdd-developer.md       # moved up from .claude/agents/
-├── hooks/hooks.json              # the hook config from .claude/settings.json
-├── .claude/hooks/*.py            # the hook scripts (can stay; see paths below)
-├── .mcp.json                     # at plugin root
-└── spec-mcp/                     # bundled MCP server (unchanged)
-```
+The core TDD process in `.claude/skills/auto-tdd/SKILL.md` is tool-agnostic and documents the discipline in plain English. Other tools (Codex, AntiGravity, etc.) can read it and implement the same workflow. The validation rules in `.claude/hooks/` are Python scripts that can be wired into any AI development environment.
 
-A minimal manifest:
+See [AGENTS.md](AGENTS.md) for how to integrate into non-Claude-Code tools.
 
-```json
-{
-  "name": "tdd-harness",
-  "version": "0.1.0",
-  "description": "Autonomous spec-driven TDD: features in, src + tests out."
-}
-```
+## Future: promoting to a plugin
 
-### The one real gotcha: two path variables, not one
+**Not done yet — this is the planned next step.** A Claude Code plugin would let you install once and use in any project, with no file-copying. The structure would change slightly (moving skills/agents/hooks up from `.claude/`), but the workflow stays the same. The key difference: path variables would distinguish `${CLAUDE_PLUGIN_ROOT}` (plugin files) from `${CLAUDE_PROJECT_DIR}` (project files), so the bundled spec MCP and hooks can operate on different projects.
 
-This is the crux, and it's *specific to a file-generating workflow like this
-one*. Today the template resolves everything via `${CLAUDE_PROJECT_DIR:-.}` —
-both the bundled scripts and the project it operates on are the same folder. In
-a plugin they are **two different places**, and the config must distinguish:
-
-- **`${CLAUDE_PLUGIN_ROOT}`** — where the plugin's own files live (the hook
-  scripts, the MCP server, `spec_lib.py`). Stays the same across every project.
-- **`${CLAUDE_PROJECT_DIR}`** — the repo the user is currently in, where
-  `features/` is read and `src/`/`tests/` get generated. Different per project.
-
-So the conversions are:
-
-- **MCP** (`.mcp.json`): launch the server from the plugin, but point its
-  `--features`/`--tests` at the project.
-  ```json
-  {
-    "mcpServers": {
-      "spec": {
-        "command": "${CLAUDE_PLUGIN_ROOT}/spec-mcp/.venv/bin/python",
-        "args": [
-          "${CLAUDE_PLUGIN_ROOT}/spec-mcp/spec_server.py",
-          "--features", "${CLAUDE_PROJECT_DIR}/features",
-          "--tests", "${CLAUDE_PROJECT_DIR}/tests"
-        ]
-      }
-    }
-  }
-  ```
-  (`spec_server.py` already accepts `--features`/`--tests`, so no code change —
-  this is exactly why those flags exist.)
-
-- **Hooks** (`hooks/hooks.json`): invoke the bundled script via
-  `${CLAUDE_PLUGIN_ROOT}` but run it against the current project. The hooks
-  read `CLAUDE_PROJECT_DIR` from the environment already (`project_dir_from_env`
-  in `_testlib.py`), so they keep working — just change the script path:
-  ```json
-  { "type": "command",
-    "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude/hooks/require_failing_test.py\"" }
-  ```
-
-- **Skills / agent**: move the files up to `skills/` and `agents/`; their
-  *content* is unchanged. Anything inside them that points at the project still
-  uses `${CLAUDE_PROJECT_DIR}`.
-
-### Distribution
-
-Host the plugin in a git repo and reference it from a `marketplace.json`; users
-run `claude plugin marketplace add <url>` then `claude plugin install tdd-harness`.
-For internal/personal use, `claude plugin init` scaffolds a skills-dir plugin
-that loads with no marketplace at all — the simplest first step.
-
-### Watch-outs when we do it
-
-- **The MCP needs its own venv inside the plugin** (`${CLAUDE_PLUGIN_ROOT}/spec-mcp/.venv`),
-  since the project's venv may not have `mcp` installed. Decide whether to
-  bundle/bootstrap it.
-- **Hook gating — already handled.** As a globally-enabled plugin the hooks
-  would fire in *every* project, including non-Python ones. This is solved:
-  both hooks check `workflow_enabled()` (in `_testlib.py`) first and stay inert
-  unless the current project has `.claude/tdd-harness.json` with
-  `{"enforce": true}`. We chose an explicit opt-in over auto-detecting pytest
-  because the bad failure mode — wrongly *blocking* edits in a stranger's repo
-  — is far worse than wrongly staying silent, so the gate errs toward OFF
-  (missing/false/malformed config all disable). Covered by
-  `.claude/hooks/test_gating.py`.
-- **Always ship an explicit manifest** to control the `name` (and thus the
-  skill namespace) rather than relying on directory-name auto-discovery.
+When we do this, all the hard problems are solved: hook gating already works, the MCP already accepts `--features`/`--tests` flags to point at any project, and the skills are already readable text. The conversion is mechanical.
