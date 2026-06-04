@@ -77,6 +77,7 @@ Next:
      - VS Code:   open this folder as the workspace, then start Claude Code
   3. Run:  /auto-tdd
 
-The hooks enforce RED-before-GREEN (see .claude/spec-tdd.json). Review
-DEV_LOG.md and the generated code when the run finishes.
+Agent will mostly (sometimes always) run on own.
+But keep an eye on session because sometimes permission issues arise. 
+Review DEV_LOG.md and the generated code when the run finishes.
 NEXT
