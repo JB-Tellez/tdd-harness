@@ -21,8 +21,17 @@ The point of the template is this split:
 | `skills/tdd/`, `skills/deglaze/` | The parent skills it builds on |
 | `.claude/agents/tdd-developer.md` | The "simulated developer" subagent that reviews each gate |
 | `.claude/hooks/` + `.claude/settings.json` | RED-before-GREEN gate + test-state observer |
+| `.claude/spec-tdd.json` | **Opt-in switch** — the hooks only act when `{"enforce": true}` is here |
 | `spec-mcp/` + `.mcp.json` | Exposes your `features/` as queryable tools |
 | `AGENTS.md`, `pytest.ini`, `pyrightconfig.json`, `requirements.txt` | Conventions + tooling config |
+
+> **Hook gating.** The hooks are inert unless `.claude/spec-tdd.json` contains
+> `{"enforce": true}`. The template ships it on, so a copied project enforces
+> RED-before-GREEN out of the box. This matters most for the *plugin* future
+> (below): a globally-enabled plugin would otherwise fire its hooks in every
+> repo you open and block edits in projects that never opted in. The gate keeps
+> it dormant everywhere except where you said `enforce`. To disable in a copied
+> project, set `"enforce": false` (or delete the file).
 
 **What you provide / what gets generated:**
 
@@ -188,9 +197,14 @@ that loads with no marketplace at all — the simplest first step.
 - **The MCP needs its own venv inside the plugin** (`${CLAUDE_PLUGIN_ROOT}/spec-mcp/.venv`),
   since the project's venv may not have `mcp` installed. Decide whether to
   bundle/bootstrap it.
-- **The hooks assume the project uses pytest.** As a globally-enabled plugin,
-  they'd fire in *every* project — including non-Python ones. Gate them (e.g.
-  only act when a `pytest.ini` exists in `CLAUDE_PROJECT_DIR`) so the plugin is
-  inert where it doesn't apply.
+- **Hook gating — already handled.** As a globally-enabled plugin the hooks
+  would fire in *every* project, including non-Python ones. This is solved:
+  both hooks check `workflow_enabled()` (in `_testlib.py`) first and stay inert
+  unless the current project has `.claude/spec-tdd.json` with
+  `{"enforce": true}`. We chose an explicit opt-in over auto-detecting pytest
+  because the bad failure mode — wrongly *blocking* edits in a stranger's repo
+  — is far worse than wrongly staying silent, so the gate errs toward OFF
+  (missing/false/malformed config all disable). Covered by
+  `.claude/hooks/test_gating.py`.
 - **Always ship an explicit manifest** to control the `name` (and thus the
   skill namespace) rather than relying on directory-name auto-discovery.

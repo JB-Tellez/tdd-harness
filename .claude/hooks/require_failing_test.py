@@ -30,6 +30,7 @@ from _testlib import (  # noqa: E402
     project_dir_from_env,
     read_tool_input,
     run_pytest,
+    workflow_enabled,
 )
 
 
@@ -56,6 +57,13 @@ def deny(reason):
 def main():
     payload = read_tool_input()
     project_dir = project_dir_from_env()
+
+    # Gate FIRST: stay inert unless this project opted into spec-tdd. As a
+    # global plugin this hook fires everywhere; in a repo that didn't opt in
+    # we must allow silently and never run pytest. (See workflow_enabled.)
+    if not workflow_enabled(project_dir):
+        allow()
+
     path = edited_path(payload)
 
     # Only production code is gated. Tests, docs, config -- all free.

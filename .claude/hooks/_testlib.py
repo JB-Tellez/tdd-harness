@@ -110,3 +110,32 @@ def _has_result_summary(output):
 def project_dir_from_env():
     """The directory Claude Code is operating in for this session."""
     return os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+
+
+# Opt-in config file the spec-tdd workflow owns, in the *project's* .claude/.
+# Kept separate from Claude Code's own settings.json so we never collide with
+# its schema; it's purely our gate signal.
+_CONFIG_NAME = "spec-tdd.json"
+
+
+def workflow_enabled(project_dir):
+    """True only if the current project has opted into spec-tdd enforcement.
+
+    This is the gate that keeps the hooks INERT in unrelated repos. As a
+    globally-enabled plugin, these hooks fire on every Edit/Write in every
+    project; without this check, a non-pytest repo would get its src/ edits
+    blocked (fail-closed) for no reason. We require an explicit opt-in:
+
+        .claude/spec-tdd.json  ->  {"enforce": true}
+
+    Absent file, missing/false "enforce", or unreadable config -> disabled.
+    Erring toward OFF is deliberate: a hook that wrongly stays silent is a
+    non-event; a hook that wrongly blocks edits makes a stranger's repo feel
+    broken.
+    """
+    config_path = os.path.join(project_dir, ".claude", _CONFIG_NAME)
+    try:
+        with open(config_path, encoding="utf-8") as fh:
+            return bool(json.load(fh).get("enforce", False))
+    except (OSError, ValueError):
+        return False
