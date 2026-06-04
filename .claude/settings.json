@@ -4,6 +4,8 @@
       "Skill(skill-creator:skill-creator)",
       "Skill(skill-creator:skill-creator:*)",
 
+      "mcp__spec",
+
       "Read",
       "Edit(/**)",
       "Write(/**)",

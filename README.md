@@ -37,9 +37,11 @@ The point of the template is this split:
 ## Running unattended (few/no approval prompts)
 
 A `/auto-tdd` run does the same handful of operations over and over — run
-pytest, read/write files, git add/commit. The template pre-approves exactly
-those in `.claude/settings.json` (`permissions.allow`), so the run proceeds
-without stopping to ask. Two things make this actually work:
+pytest, read/write files, git add/commit, and query the `spec` MCP server. The
+template pre-approves exactly those in `.claude/settings.json`
+(`permissions.allow`, including `mcp__spec` for all the spec server's tools),
+so the run proceeds without stopping to ask. Two things make this actually
+work:
 
 1. **The skill always runs the suite the same way: `python -m pytest`** (from
    the project root, no `PYTHONPATH=`, no `source`, no `python3`). Claude Code's
