@@ -49,22 +49,35 @@ The point of the template is this split:
 cp -R templates/spec-tdd ~/my-new-project
 cd ~/my-new-project
 
-# 2. Set up the environment
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pip install -r spec-mcp/requirements.txt   # only if you want the spec MCP
+# 2. Set up the environment (venv + deps + a selftest)
+./setup.sh
 
 # 3. Replace features/example.feature with your real behaviors
-#    (add as many .feature files as you like)
+#    (add as many .feature files as you like; re-run ./setup.sh to confirm
+#     they're picked up)
 
 # 4. Open Claude Code IN THIS FOLDER (important — see note below), then:
 #    /auto-tdd
 ```
 
+`setup.sh` is idempotent — re-run it any time (e.g. after adding feature
+files) to reinstall and re-print the scenarios the harness can see.
+
 The agent reads your scenarios, then drives one TDD cycle per scenario. When
 it finishes, review `DEV_LOG.md` and the generated code — see the course's
 `docs/verifying-an-auto-tdd-run.md` for a verification checklist.
+
+<details>
+<summary>What <code>setup.sh</code> does (if you'd rather run it by hand)</summary>
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -r spec-mcp/requirements.txt   # only if you want the spec MCP
+python spec-mcp/spec_server.py --selftest  # confirms it sees your features
+```
+</details>
 
 ## Important: open Claude Code with this folder as the project root
 
