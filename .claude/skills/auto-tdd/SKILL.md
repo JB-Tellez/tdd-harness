@@ -42,9 +42,27 @@ For each behavior in the spec, run the cycle below. Don't batch — finish one b
 - Create `DEV_LOG.md` at the project root with a header explaining the format. See "DEV_LOG format" below.
 - Use `TodoWrite` (or equivalent) to track one item per scenario. Mark `in_progress` when you start a cycle, `completed` when its commit lands.
 
+### Running the suite — ALWAYS exactly this command
+
+Every time the process says "run the suite," run **exactly**:
+
+```
+python -m pytest
+```
+
+— from the project root, nothing more. To run a single test, add only a node id or `-k` filter (e.g. `python -m pytest -k completing`). This is a hard rule, and it's load-bearing for autonomous runs, because the project pre-approves *this canonical form* in `.claude/settings.json` so it never prompts. Drift breaks that and forces an approval on every variation. Specifically, **do NOT**:
+
+- prefix `PYTHONPATH=src` — `pytest.ini` already sets `pythonpath = src`.
+- wrap in `source .venv/bin/activate && ...` — `source` can never be auto-approved; just call `python` (the project venv is already the interpreter).
+- use `python3` instead of `python`, or vary the path — pick one form and keep it.
+- pass explicit test paths like `tests/test_x.py` — `pytest.ini` sets `testpaths = tests`; use `-k`/node-id to narrow instead.
+- combine with `cat`/`find`/`ls` in one compound line — run inspection and the suite as separate commands (compound lines and `find -exec` force prompts).
+
+If `python -m pytest` ever fails to find the module or the tests, fix `pytest.ini` (or the venv), don't paper over it with `PYTHONPATH=`/`source` — that just reintroduces the prompts.
+
 ### 1. RED — write one failing test
 
-Same rules as the `tdd` skill: write only one test, only as much as is sufficient to fail. Run the suite to confirm it fails.
+Same rules as the `tdd` skill: write only one test, only as much as is sufficient to fail. Run the suite (see "Running the suite" above — always `python -m pytest`) to confirm it fails.
 
 **Sanity check before invoking the RED gate:** does the test fail on its *assertion*, or in its *Arrange* phase (setup error, missing method needed just to set up the scenario)? If it fails in Arrange, the test is doing double duty — driving two unbuilt behaviors at once. **Split it.** Write a smaller precursor test that drives only the setup-level behavior; let that cycle complete first; then return to the original test. This is the most common autonomous mistake — surface it before you call the gate.
 

@@ -20,7 +20,8 @@ The point of the template is this split:
 | `.claude/skills/auto-tdd/` | The autonomous TDD process (red → green → refactor → deglaze → commit) |
 | `.claude/skills/tdd/`, `.claude/skills/deglaze/` | The parent skills it builds on |
 | `.claude/agents/tdd-developer.md` | The "simulated developer" subagent that reviews each gate |
-| `.claude/hooks/` + `.claude/settings.json` | RED-before-GREEN gate + test-state observer |
+| `.claude/hooks/` | RED-before-GREEN gate + test-state observer (scripts) |
+| `.claude/settings.json` | Wires the hooks + pre-approves the run's commands (`permissions.allow`) so it runs unattended |
 | `.claude/spec-tdd.json` | **Opt-in switch** — the hooks only act when `{"enforce": true}` is here |
 | `spec-mcp/` + `.mcp.json` | Exposes your `features/` as queryable tools |
 | `AGENTS.md`, `pytest.ini`, `pyrightconfig.json`, `requirements.txt` | Conventions + tooling config |
@@ -32,6 +33,33 @@ The point of the template is this split:
 > repo you open and block edits in projects that never opted in. The gate keeps
 > it dormant everywhere except where you said `enforce`. To disable in a copied
 > project, set `"enforce": false` (or delete the file).
+
+## Running unattended (few/no approval prompts)
+
+A `/auto-tdd` run does the same handful of operations over and over — run
+pytest, read/write files, git add/commit. The template pre-approves exactly
+those in `.claude/settings.json` (`permissions.allow`), so the run proceeds
+without stopping to ask. Two things make this actually work:
+
+1. **The skill always runs the suite the same way: `python -m pytest`** (from
+   the project root, no `PYTHONPATH=`, no `source`, no `python3`). Claude Code's
+   "don't ask again" matches a *command prefix*, so the one allowlisted form
+   `Bash(python -m pytest:*)` covers every test run. Drift — a stray
+   `PYTHONPATH=src`, a `source .venv/...`, an explicit test path — defeats the
+   match and forces a fresh prompt. The skill states this as a hard rule.
+2. **`setup.sh` does the one-time operations** (venv, `git init`, creating
+   `DEV_LOG.md`) *before* the run, so they never prompt mid-run.
+
+This is a **targeted allowlist, not a blanket bypass** — chosen deliberately so
+a copied template can't run arbitrary commands unapproved. Commands the agent
+*shouldn't* need still prompt. If you want fuller hands-off for a throwaway
+trial, add `"defaultMode": "bypassPermissions"` to `.claude/settings.local.json`
+(git-ignored) — but understand it skips *all* prompts; only do it in a
+disposable directory.
+
+**The gating hooks still fire regardless.** Pre-approving permissions does not
+disable the RED-before-GREEN hook — hooks run before permission rules and can
+still block. So "no prompts" removes *friction*, not *discipline*.
 
 **What you provide / what gets generated:**
 

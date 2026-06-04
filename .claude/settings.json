@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Skill(skill-creator:skill-creator)",
-      "Skill(skill-creator:skill-creator:*)"
+      "Skill(skill-creator:skill-creator:*)",
+
+      "Read",
+      "Edit(/**)",
+      "Write(/**)",
+
+      "Bash(python -m pytest:*)",
+      "Bash(python3 -m pytest:*)",
+
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)"
     ]
   },
   "hooks": {

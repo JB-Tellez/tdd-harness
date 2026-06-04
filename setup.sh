@@ -37,7 +37,29 @@ if [ -f spec-mcp/requirements.txt ]; then
   "$VPY" -m pip install --quiet -r spec-mcp/requirements.txt
 fi
 
-# 3. selftest: confirm the harness parses your feature files
+# 3. git — commits depend on it; doing it here means /auto-tdd never has to
+#    stop and ask for `git init` mid-run.
+if [ ! -d .git ]; then
+  echo "==> Initializing git repo"
+  git init --quiet
+else
+  echo "==> git repo already present"
+fi
+
+# 4. DEV_LOG — scaffold it here so the run appends rather than asking to create.
+if [ ! -f DEV_LOG.md ]; then
+  echo "==> Creating DEV_LOG.md"
+  cat > DEV_LOG.md <<'LOG'
+# DEV_LOG
+
+Decisions and escalations from an autonomous TDD run (auto-tdd skill).
+One section per cycle is appended below as the run proceeds.
+LOG
+else
+  echo "==> DEV_LOG.md already present"
+fi
+
+# 5. selftest: confirm the harness parses your feature files
 echo "==> Spec MCP selftest (scenarios it can see right now):"
 "$VPY" spec-mcp/spec_server.py --selftest || {
   echo "    (selftest failed -- check that features/*.feature exist)"
