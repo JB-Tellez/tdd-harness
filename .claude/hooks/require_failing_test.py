@@ -112,7 +112,7 @@ def main():
     payload = read_tool_input()
     project_dir = project_dir_from_env()
 
-    # Gate FIRST: stay inert unless this project opted into spec-tdd. As a
+    # Gate FIRST: stay inert unless this project opted into tdd-harness. As a
     # global plugin this hook fires everywhere; in a repo that didn't opt in
     # we must allow silently and never run pytest. (See workflow_enabled.)
     if not workflow_enabled(project_dir):

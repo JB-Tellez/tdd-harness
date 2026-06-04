@@ -67,7 +67,7 @@ def main():
     project_dir = project_dir_from_env()
 
     # Gate FIRST: stay inert (silent, no test run) unless this project opted
-    # into spec-tdd. See workflow_enabled in _testlib.
+    # into tdd-harness. See workflow_enabled in _testlib.
     if not workflow_enabled(project_dir):
         sys.exit(0)
 

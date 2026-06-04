@@ -112,21 +112,21 @@ def project_dir_from_env():
     return os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 
 
-# Opt-in config file the spec-tdd workflow owns, in the *project's* .claude/.
+# Opt-in config file the tdd-harness workflow owns, in the *project's* .claude/.
 # Kept separate from Claude Code's own settings.json so we never collide with
 # its schema; it's purely our gate signal.
-_CONFIG_NAME = "spec-tdd.json"
+_CONFIG_NAME = "tdd-harness.json"
 
 
 def workflow_enabled(project_dir):
-    """True only if the current project has opted into spec-tdd enforcement.
+    """True only if the current project has opted into tdd-harness enforcement.
 
     This is the gate that keeps the hooks INERT in unrelated repos. As a
     globally-enabled plugin, these hooks fire on every Edit/Write in every
     project; without this check, a non-pytest repo would get its src/ edits
     blocked (fail-closed) for no reason. We require an explicit opt-in:
 
-        .claude/spec-tdd.json  ->  {"enforce": true}
+        .claude/tdd-harness.json  ->  {"enforce": true}
 
     Absent file, missing/false "enforce", or unreadable config -> disabled.
     Erring toward OFF is deliberate: a hook that wrongly stays silent is a

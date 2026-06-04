@@ -13,7 +13,7 @@ exactly what to run instead. The agent re-issues the canonical form, which the
 allowlist covers -- so the prompts stop.
 
 Scope: gated like the other hooks (only acts when the project opted into
-spec-tdd), and only touches commands that mention pytest -- everything else
+tdd-harness), and only touches commands that mention pytest -- everything else
 passes through untouched.
 
 Contract: PreToolUse hook. To block, print a JSON deny decision and exit 0.

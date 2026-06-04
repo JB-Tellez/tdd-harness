@@ -1,4 +1,4 @@
-# spec-tdd — a portable spec-driven TDD harness
+# tdd-harness — a portable spec-driven TDD harness
 
 This is a **copyable starter** for building a Python project from a Gherkin
 spec using autonomous, gated TDD. Drop in your feature files, point Claude
@@ -22,11 +22,11 @@ The point of the template is this split:
 | `.claude/agents/tdd-developer.md` | The "simulated developer" subagent that reviews each gate |
 | `.claude/hooks/` | RED-before-GREEN gate + test-state observer + canonical-pytest enforcer (scripts) |
 | `.claude/settings.json` | Wires the hooks + pre-approves the run's commands (`permissions.allow`) so it runs unattended |
-| `.claude/spec-tdd.json` | **Opt-in switch** — the hooks only act when `{"enforce": true}` is here |
+| `.claude/tdd-harness.json` | **Opt-in switch** — the hooks only act when `{"enforce": true}` is here |
 | `spec-mcp/` + `.mcp.json` | Exposes your `features/` as queryable tools |
 | `AGENTS.md`, `pytest.ini`, `pyrightconfig.json`, `requirements.txt` | Conventions + tooling config |
 
-> **Hook gating.** The hooks are inert unless `.claude/spec-tdd.json` contains
+> **Hook gating.** The hooks are inert unless `.claude/tdd-harness.json` contains
 > `{"enforce": true}`. The template ships it on, so a copied project enforces
 > RED-before-GREEN out of the box. This matters most for the *plugin* future
 > (below): a globally-enabled plugin would otherwise fire its hooks in every
@@ -114,7 +114,7 @@ still block. So "no prompts" removes *friction*, not *discipline*.
 
 ```sh
 # 1. Copy the template to your new project
-cp -R templates/spec-tdd ~/my-new-project
+cp -R templates/tdd-harness ~/my-new-project
 cd ~/my-new-project
 
 # 2. Set up the environment (venv + deps + a selftest)
@@ -190,9 +190,9 @@ this, here's the shape and the one real gotcha.
 
 ### Why promote it
 
-- Install once (`claude plugin install spec-tdd`), use in any repo — no `cp -R`.
+- Install once (`claude plugin install tdd-harness`), use in any repo — no `cp -R`.
 - Version-managed: pin a version, update centrally.
-- The skills become namespaced (`/spec-tdd:auto-tdd`), so they don't collide
+- The skills become namespaced (`/tdd-harness:auto-tdd`), so they don't collide
   with a project's own skills.
 
 ### The structure change (project layout → plugin layout)
@@ -201,7 +201,7 @@ A plugin keeps its components at the plugin *root* (not under `.claude/`), with
 a manifest at `.claude-plugin/plugin.json`:
 
 ```
-spec-tdd/                         # plugin root
+tdd-harness/                      # plugin root
 ├── .claude-plugin/plugin.json    # manifest (name, version, description)
 ├── skills/{auto-tdd,tdd,deglaze}/  # moved up from .claude/skills/ (same files)
 ├── agents/tdd-developer.md       # moved up from .claude/agents/
@@ -215,7 +215,7 @@ A minimal manifest:
 
 ```json
 {
-  "name": "spec-tdd",
+  "name": "tdd-harness",
   "version": "0.1.0",
   "description": "Autonomous spec-driven TDD: features in, src + tests out."
 }
@@ -270,7 +270,7 @@ So the conversions are:
 ### Distribution
 
 Host the plugin in a git repo and reference it from a `marketplace.json`; users
-run `claude plugin marketplace add <url>` then `claude plugin install spec-tdd`.
+run `claude plugin marketplace add <url>` then `claude plugin install tdd-harness`.
 For internal/personal use, `claude plugin init` scaffolds a skills-dir plugin
 that loads with no marketplace at all — the simplest first step.
 
@@ -282,7 +282,7 @@ that loads with no marketplace at all — the simplest first step.
 - **Hook gating — already handled.** As a globally-enabled plugin the hooks
   would fire in *every* project, including non-Python ones. This is solved:
   both hooks check `workflow_enabled()` (in `_testlib.py`) first and stay inert
-  unless the current project has `.claude/spec-tdd.json` with
+  unless the current project has `.claude/tdd-harness.json` with
   `{"enforce": true}`. We chose an explicit opt-in over auto-detecting pytest
   because the bad failure mode — wrongly *blocking* edits in a stranger's repo
   — is far worse than wrongly staying silent, so the gate errs toward OFF

@@ -1,5 +1,5 @@
 """Tests for the hook gate -- the check that keeps these hooks INERT in repos
-that didn't opt into spec-tdd.
+that didn't opt into tdd-harness.
 
 This is the safety property that matters most once the hooks ship as a global
 plugin: firing in an unrelated repo and blocking its edits would make that repo
@@ -14,11 +14,11 @@ import _testlib
 
 
 def _project(tmp_path, config=None):
-    """A temp project root, optionally with .claude/spec-tdd.json written."""
+    """A temp project root, optionally with .claude/tdd-harness.json written."""
     claude = tmp_path / ".claude"
     claude.mkdir()
     if config is not None:
-        (claude / "spec-tdd.json").write_text(json.dumps(config))
+        (claude / "tdd-harness.json").write_text(json.dumps(config))
     return str(tmp_path)
 
 
@@ -45,5 +45,5 @@ def test_disabled_on_malformed_config(tmp_path):
     # toward OFF, because wrongly blocking edits is the bad failure.
     claude = tmp_path / ".claude"
     claude.mkdir()
-    (claude / "spec-tdd.json").write_text("{ not valid json")
+    (claude / "tdd-harness.json").write_text("{ not valid json")
     assert _testlib.workflow_enabled(str(tmp_path)) is False

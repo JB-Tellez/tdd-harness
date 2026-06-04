@@ -33,7 +33,7 @@ def _denies(command, project_dir):
 def _optedin(tmp_path):
     claude = tmp_path / ".claude"
     claude.mkdir()
-    (claude / "spec-tdd.json").write_text('{"enforce": true}')
+    (claude / "tdd-harness.json").write_text('{"enforce": true}')
     return tmp_path
 
 
@@ -72,5 +72,5 @@ def test_non_pytest_command_ignored(tmp_path):
 # --- gating: inert when the project hasn't opted in ------------------------
 
 def test_inert_when_not_opted_in(tmp_path):
-    (tmp_path / ".claude").mkdir()  # no spec-tdd.json
+    (tmp_path / ".claude").mkdir()  # no tdd-harness.json
     assert not _denies("python -m pytest -q", tmp_path)
