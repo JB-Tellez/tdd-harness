@@ -36,7 +36,7 @@ For each behavior in the spec, run the cycle below. Don't batch — finish one b
 
 ### 0. Setup (once per project)
 
-- Read the spec (feature files, acceptance criteria list, etc.). Enumerate the scenarios.
+- Read the spec: **Look first for a `features/` folder with `*.feature` files** as the canonical Gherkin spec source. If no feature files exist, accept acceptance criteria lists or other spec formats from the user. Enumerate the scenarios.
 - Detect the project's test runner, framework, and conventions by examining existing test files. Match them.
 - Confirm tests run. Confirm git is initialized (commits depend on it).
 - Create `DEV_LOG.md` at the project root with a header explaining the format. See "DEV_LOG format" below.

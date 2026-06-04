@@ -15,7 +15,7 @@ Follow the Three Rules of TDD strictly:
 
 For $ARGUMENTS:
 
-1. **Understand** — Clarify what behavior is being requested. If ambiguous, ask before writing any code.
+1. **Understand** — Clarify what behavior is being requested. **Look first for a `features/` folder with `*.feature` files as the canonical Gherkin spec source.** If no feature files exist, ask the user to clarify. If ambiguous, ask before writing any code.
 
 2. **RED** — Write a single failing test that describes the next small piece of desired behavior.
    - Write only one test. Do not write multiple tests.
