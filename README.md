@@ -89,3 +89,108 @@ cd spec-mcp && python -m pytest test_spec_lib.py
 
 These are self-contained (they write tiny temp specs) and should pass in a
 fresh copy before you add anything.
+
+## Future: promoting this template to a Claude Code plugin
+
+**Not done yet — this is the planned next step.** Copying the folder works, but
+a *plugin* would make the harness installable once and available in every
+project, with no file-copying and version management built in. When we do
+this, here's the shape and the one real gotcha.
+
+### Why promote it
+
+- Install once (`claude plugin install spec-tdd`), use in any repo — no `cp -R`.
+- Version-managed: pin a version, update centrally.
+- The skills become namespaced (`/spec-tdd:auto-tdd`), so they don't collide
+  with a project's own skills.
+
+### The structure change (project layout → plugin layout)
+
+A plugin keeps its components at the plugin *root* (not under `.claude/`), with
+a manifest at `.claude-plugin/plugin.json`:
+
+```
+spec-tdd/                         # plugin root
+├── .claude-plugin/plugin.json    # manifest (name, version, description)
+├── skills/{auto-tdd,tdd,deglaze}/  # moved up from skills/ (same files)
+├── agents/tdd-developer.md       # moved up from .claude/agents/
+├── hooks/hooks.json              # the hook config from .claude/settings.json
+├── .claude/hooks/*.py            # the hook scripts (can stay; see paths below)
+├── .mcp.json                     # at plugin root
+└── spec-mcp/                     # bundled MCP server (unchanged)
+```
+
+A minimal manifest:
+
+```json
+{
+  "name": "spec-tdd",
+  "version": "0.1.0",
+  "description": "Autonomous spec-driven TDD: features in, src + tests out."
+}
+```
+
+### The one real gotcha: two path variables, not one
+
+This is the crux, and it's *specific to a file-generating workflow like this
+one*. Today the template resolves everything via `${CLAUDE_PROJECT_DIR:-.}` —
+both the bundled scripts and the project it operates on are the same folder. In
+a plugin they are **two different places**, and the config must distinguish:
+
+- **`${CLAUDE_PLUGIN_ROOT}`** — where the plugin's own files live (the hook
+  scripts, the MCP server, `spec_lib.py`). Stays the same across every project.
+- **`${CLAUDE_PROJECT_DIR}`** — the repo the user is currently in, where
+  `features/` is read and `src/`/`tests/` get generated. Different per project.
+
+So the conversions are:
+
+- **MCP** (`.mcp.json`): launch the server from the plugin, but point its
+  `--features`/`--tests` at the project.
+  ```json
+  {
+    "mcpServers": {
+      "spec": {
+        "command": "${CLAUDE_PLUGIN_ROOT}/spec-mcp/.venv/bin/python",
+        "args": [
+          "${CLAUDE_PLUGIN_ROOT}/spec-mcp/spec_server.py",
+          "--features", "${CLAUDE_PROJECT_DIR}/features",
+          "--tests", "${CLAUDE_PROJECT_DIR}/tests"
+        ]
+      }
+    }
+  }
+  ```
+  (`spec_server.py` already accepts `--features`/`--tests`, so no code change —
+  this is exactly why those flags exist.)
+
+- **Hooks** (`hooks/hooks.json`): invoke the bundled script via
+  `${CLAUDE_PLUGIN_ROOT}` but run it against the current project. The hooks
+  read `CLAUDE_PROJECT_DIR` from the environment already (`project_dir_from_env`
+  in `_testlib.py`), so they keep working — just change the script path:
+  ```json
+  { "type": "command",
+    "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude/hooks/require_failing_test.py\"" }
+  ```
+
+- **Skills / agent**: move the files up to `skills/` and `agents/`; their
+  *content* is unchanged. Anything inside them that points at the project still
+  uses `${CLAUDE_PROJECT_DIR}`.
+
+### Distribution
+
+Host the plugin in a git repo and reference it from a `marketplace.json`; users
+run `claude plugin marketplace add <url>` then `claude plugin install spec-tdd`.
+For internal/personal use, `claude plugin init` scaffolds a skills-dir plugin
+that loads with no marketplace at all — the simplest first step.
+
+### Watch-outs when we do it
+
+- **The MCP needs its own venv inside the plugin** (`${CLAUDE_PLUGIN_ROOT}/spec-mcp/.venv`),
+  since the project's venv may not have `mcp` installed. Decide whether to
+  bundle/bootstrap it.
+- **The hooks assume the project uses pytest.** As a globally-enabled plugin,
+  they'd fire in *every* project — including non-Python ones. Gate them (e.g.
+  only act when a `pytest.ini` exists in `CLAUDE_PROJECT_DIR`) so the plugin is
+  inert where it doesn't apply.
+- **Always ship an explicit manifest** to control the `name` (and thus the
+  skill namespace) rather than relying on directory-name auto-discovery.
