@@ -20,7 +20,7 @@ The point of the template is this split:
 | `.claude/skills/auto-tdd/` | The autonomous TDD process (red → green → refactor → deglaze → commit) |
 | `.claude/skills/tdd/`, `.claude/skills/deglaze/` | The parent skills it builds on |
 | `.claude/agents/tdd-developer.md` | The "simulated developer" subagent that reviews each gate |
-| `.claude/hooks/` | RED-before-GREEN gate + test-state observer (scripts) |
+| `.claude/hooks/` | RED-before-GREEN gate + test-state observer + canonical-pytest enforcer (scripts) |
 | `.claude/settings.json` | Wires the hooks + pre-approves the run's commands (`permissions.allow`) so it runs unattended |
 | `.claude/spec-tdd.json` | **Opt-in switch** — the hooks only act when `{"enforce": true}` is here |
 | `spec-mcp/` + `.mcp.json` | Exposes your `features/` as queryable tools |
@@ -52,7 +52,11 @@ work:
    `Bash(.venv/bin/python -m pytest:*)` covers every test run. Drift — a stray
    `PYTHONPATH=src`, a `source .venv/...`, bare `python`, an explicit test
    path — defeats the match and forces a fresh prompt. The skill states this as
-   a hard rule.
+   a hard rule, and a `PreToolUse` hook (`enforce_canonical_pytest.py`)
+   *enforces* it: any non-canonical pytest command is blocked with a message
+   telling the agent the right form, so drift self-corrects instead of
+   prompting. (Reading files is likewise pushed to the Read tool, not
+   `cat`/`find -exec`, which can't be auto-approved.)
 2. **`setup.sh` does the one-time operations** (venv, `git init`, creating
    `DEV_LOG.md`) *before* the run, so they never prompt mid-run.
 

@@ -19,15 +19,27 @@
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)",
 
       "Bash(mkdir:*)",
       "Bash(touch:*)",
       "Bash(ls:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(grep:*)"
     ]
   },
   "hooks": {
     "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/enforce_canonical_pytest.py\""
+          }
+        ]
+      },
       {
         "matcher": "Edit|Write",
         "hooks": [

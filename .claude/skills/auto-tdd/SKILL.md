@@ -60,6 +60,12 @@ Every time the process says "run the suite," run **exactly**:
 
 If `.venv/bin/python -m pytest` ever fails to find the module or the tests, fix `pytest.ini` (or re-run `./setup.sh` to rebuild the venv), don't paper over it with `PYTHONPATH=`/`source` — that just reintroduces the prompts.
 
+This is enforced: a `PreToolUse` hook (`enforce_canonical_pytest.py`) blocks any non-canonical pytest command and tells you the right form. If you see that denial, just re-run as `.venv/bin/python -m pytest`.
+
+### Reading files — use the Read tool, not the shell
+
+To inspect source, tests, or feature files, use the **Read** tool (and Grep/Glob for searching). Do **not** shell out with `cat`, `find … -exec cat {} \;`, or `for f in $(…); do cat …`. Those shell forms can't be auto-approved (`find -exec` and `$(…)`/loops are unapprovable by design), so they force a prompt every time — and the Read tool does the job without one. Reserve Bash for things that genuinely need it: running the suite and git.
+
 ### 1. RED — write one failing test
 
 Same rules as the `tdd` skill: write only one test, only as much as is sufficient to fail. Run the suite (see "Running the suite" above — always `.venv/bin/python -m pytest`) to confirm it fails.
