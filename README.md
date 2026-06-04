@@ -6,9 +6,6 @@ Code at the folder, run `/auto-tdd`, and the source and tests get generated —
 one small red-green-refactor cycle per scenario, with a decision log you
 review at the end.
 
-It's distilled from the `auto-tdd/end` reference in the AI-345 course. Same
-workflow, with the example app removed so you start from your own specs.
-
 ## What's harness vs. what you provide
 
 The point of the template is this split:
