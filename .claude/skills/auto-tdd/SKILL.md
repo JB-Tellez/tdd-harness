@@ -101,6 +101,14 @@ Spawn a fresh `tdd-developer` subagent with the `## Subagent prompts → GREEN g
 
 If the subagent proposes a refactor, apply it, re-run the suite, and confirm nothing broke. If a test unexpectedly fails, undo the refactor and try a smaller step (or skip).
 
+**Touching production while green is a *refactor-only* privilege — and it's on you to honor that.** The RED-before-GREEN hook permits `src/` edits while the suite is green (a green suite means ≥1 passing test, so the edit is *presumed* a refactor), but it can no longer distinguish a genuine refactor from new untested behavior written green. That distinction now lives here, in your judgment at this gate. So:
+
+- Only edit production while green when the subagent has approved a **concrete, behavior-preserving** refactor, and **every test stays green before and after**.
+- If a "refactor" turns any test red, you changed *behavior*, not structure — undo it. If that new behavior is actually wanted, drive it with its own failing test (RED) first, in a fresh cycle.
+- Never use the green-edit allowance to add a new feature without a failing test. The hook would now permit it; that does not make it TDD, and the deglaze gate and the human reviewing the DEV_LOG will see it.
+
+(The hook still hard-blocks one thing: editing `src/` with **no tests at all** — there's nothing to refactor and nothing driving the edit.)
+
 ### 6. Deglaze gate — escalate
 
 Per the [`deglaze`](../deglaze/SKILL.md) skill: show the subagent only the **list of changed files** (the `git diff --stat` output), and ask it to explain the change in its own words. **Do not summarize, paraphrase, or hint at what changed** — that defeats the check.
@@ -368,3 +376,4 @@ Log every time you fall back to a default (which one, why the subagent didn't de
 - Run tests after every change.
 - Log every escalation verbatim. Paraphrasing erases the signal.
 - The subagent's response is the developer's voice. Act on it as if a human said it — including pushback, refusals, and corrections.
+- **Production edits while green are refactors only.** The gate hook allows `src/` edits on a green suite, but new behavior still starts with a failing test. Edit green only for a subagent-approved refactor that keeps every test green; a green-state edit that adds untested behavior is a TDD violation even though the hook permits it.
