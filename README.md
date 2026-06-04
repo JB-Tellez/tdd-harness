@@ -7,10 +7,12 @@ A copyable Python project template for building from Gherkin specs using autonom
 ```sh
 cp -R . ~/my-new-project
 cd ~/my-new-project
+
+# Add your scenarios to features/*.feature
+# Then run setup.sh (it validates that the harness can see them)
 ./setup.sh
 
-# Now: edit features/*.feature with your scenarios
-# Then: open Claude Code in this folder and type /auto-tdd
+# Finally: open Claude Code in this folder and type /auto-tdd
 ```
 
 ## What it does
