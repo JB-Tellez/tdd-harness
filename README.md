@@ -56,12 +56,26 @@ work:
 2. **`setup.sh` does the one-time operations** (venv, `git init`, creating
    `DEV_LOG.md`) *before* the run, so they never prompt mid-run.
 
-This is a **targeted allowlist, not a blanket bypass** — chosen deliberately so
-a copied template can't run arbitrary commands unapproved. Commands the agent
-*shouldn't* need still prompt. If you want fuller hands-off for a throwaway
-trial, add `"defaultMode": "bypassPermissions"` to `.claude/settings.local.json`
-(git-ignored) — but understand it skips *all* prompts; only do it in a
-disposable directory.
+### Why a targeted allowlist, not a blanket bypass
+
+Claude Code does offer a way to skip *every* prompt — `"defaultMode":
+"bypassPermissions"` (the "YOLO" switch). **We deliberately don't use it here,
+and don't teach it.** A template that gets copied into project after project
+shouldn't carry a setting that lets the agent run any command unchecked; the
+blast radius of one wrong call is too large for something meant to be reused.
+
+So instead we enumerate the specific commands the workflow needs and approve
+only those. The honest trade-off: an allowlist is never complete. The agent
+will occasionally reach for a command we didn't anticipate, and that one will
+prompt. We treat that as expected — approve it in the moment, and if it's a
+command the workflow genuinely needs every run, add it to `permissions.allow`
+then. The allowlist converges by use, not by trying to predict everything up
+front. Prefer this narrowing-over-time approach to flipping on a bypass.
+
+(If you truly want zero prompts for a *throwaway* trial in a disposable
+directory, `bypassPermissions` exists — set it in the git-ignored
+`.claude/settings.local.json` so it never ships with the template. But that's
+an escape hatch for scratch work, not how the workflow is meant to run.)
 
 **The gating hooks still fire regardless.** Pre-approving permissions does not
 disable the RED-before-GREEN hook — hooks run before permission rules and can
