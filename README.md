@@ -72,6 +72,22 @@ command the workflow genuinely needs every run, add it to `permissions.allow`
 then. The allowlist converges by use, not by trying to predict everything up
 front. Prefer this narrowing-over-time approach to flipping on a bypass.
 
+**Adding rules mid-session.** You don't have to stop and hand-edit JSON. When a
+command prompts and you expect to need it again, you can just tell the agent in
+plain language — e.g. *"add `.venv/bin/python -m pytest` to the allowlist in
+`.claude/settings.json`"* — and it edits `permissions.allow` for you. Claude
+Code reloads permission rules immediately, so the new rule takes effect for the
+rest of the session without a restart. (The prompt's own "Yes, and don't ask
+again" option also persists the rule, though which file it writes to isn't
+documented — instructing the agent to edit a named file is the predictable
+way.) Each project will surface its own commands this way, so expect to grow
+the list a little the first few runs on a new spec.
+
+Where to put the rule: a rule the whole team should trust goes in the
+committed `.claude/settings.json`; a personal or still-being-vetted one goes in
+the git-ignored `.claude/settings.local.json`. When in doubt, start local and
+promote it to the shared file once you're confident.
+
 (If you truly want zero prompts for a *throwaway* trial in a disposable
 directory, `bypassPermissions` exists — set it in the git-ignored
 `.claude/settings.local.json` so it never ships with the template. But that's
