@@ -1,0 +1,5 @@
+# Dependency for the spec MCP server only -- intentionally separate from the
+# course's top-level requirements.txt so the core TDD exercise stays minimal.
+# Install into the project venv when you want to run the MCP:
+#   source ../.venv/bin/activate && pip install -r requirements.txt
+mcp==1.27.2

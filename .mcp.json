@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "spec": {
+      "command": "${CLAUDE_PROJECT_DIR:-.}/.venv/bin/python",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/spec-mcp/spec_server.py"]
+    }
+  }
+}
