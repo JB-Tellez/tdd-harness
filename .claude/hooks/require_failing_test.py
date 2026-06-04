@@ -1,18 +1,31 @@
 #!/usr/bin/env python3
-"""PreToolUse hook: enforce RED-before-GREEN.
+"""PreToolUse hook: keep production code test-driven (RED-before-GREEN, with a
+refactor allowance).
 
 This is the "gate" hook. It fires before every Edit/Write and asks one
 question: *is the agent allowed to touch production code right now?* The TDD
-answer is "only if there is a failing test driving the change." So:
+answer is "only when a test justifies it." So:
 
   - Editing a test file?              -> always allowed (that's how you get RED)
   - Editing src/ with a test failing? -> allowed (you're in GREEN, making it pass)
-  - Editing src/ with all green?      -> DENIED -- write a failing test first
+  - Editing src/ while green?         -> allowed AS A REFACTOR. A green suite
+                                         means >=1 passing test exists, so
+                                         behaviour-preserving restructuring is
+                                         legitimate. The hook cannot tell a real
+                                         refactor from new untested code written
+                                         while green; the skill's REFACTOR gate
+                                         owns that confirmation.
+  - Editing src/ with NO tests at all -> DENIED -- nothing drives the edit and
+                                         there is nothing to refactor; write a
+                                         failing test first.
 
-The point of doing this as a hook, not a skill instruction, is that it's not a
-norm the agent is asked to follow -- it's a constraint it cannot violate. That
-distinction is the lesson: discipline can live in someone's judgment, or it can
-live in the system. This hook is the system version.
+Doing this as a hook, not a skill instruction, still makes one thing a
+constraint the agent cannot violate: you may never write production code with
+zero tests in play. The narrower "RED-before-GREEN for *new behaviour*" rule
+now lives in the skill's REFACTOR gate (judgment), because once green edits are
+allowed the hook can no longer distinguish a refactor from a new feature.
+Discipline can live in someone's judgment or in the system; this hook keeps the
+hard floor in the system and delegates the refactor/feature call to the gate.
 
 Contract (Claude Code PreToolUse hooks): read the tool payload on stdin; to
 block, print a JSON decision object and exit 0; to allow, exit 0 with no
@@ -54,6 +67,47 @@ def deny(reason):
     sys.exit(0)
 
 
+# Reasons for the two deny states. Kept as module constants so the decision
+# logic (decide) stays pure and unit-testable.
+NONE_REASON = (
+    "No tests exist, so nothing is driving this production edit and there is "
+    "nothing to refactor. Write a single failing test first (RED), confirm it "
+    "fails, then implement. (Enforced by the require_failing_test.py PreToolUse "
+    "hook.)"
+)
+
+ERROR_REASON = (
+    "Could not determine test state -- pytest did not run a suite (missing "
+    "dependency, import error, or collection failure), so the gate is failing "
+    "closed. Fix the test runner before editing production code."
+)
+
+
+def decide(state):
+    """Map a test-suite state to an allow/deny decision for a production edit.
+
+    Returns ``(allowed, reason)`` -- ``reason`` is ``None`` when allowed.
+
+    The rule keeps production code test-driven without forbidding the refactor
+    step of red-green-refactor:
+
+      red   -> allow : a failing test is driving this edit (the GREEN phase).
+      green -> allow : the suite is green, so >=1 passing test exists; treat the
+                       edit as a REFACTOR. Behaviour-preserving restructuring is
+                       legitimate while green. The hook cannot tell a genuine
+                       refactor from new untested behaviour written green -- the
+                       skill's REFACTOR gate owns that confirmation.
+      none  -> deny  : zero tests exist; nothing drives the edit and there is
+                       nothing to refactor. Write a failing test first.
+      error -> deny  : pytest could not run a suite; fail closed.
+    """
+    if state in ("red", "green"):
+        return True, None
+    if state == "none":
+        return False, NONE_REASON
+    return False, ERROR_REASON
+
+
 def main():
     payload = read_tool_input()
     project_dir = project_dir_from_env()
@@ -71,30 +125,21 @@ def main():
         allow()
 
     state, output = run_pytest(project_dir)
+    allowed, reason = decide(state)
 
-    # A genuinely failing test means we're legitimately in GREEN, writing code
-    # to make it pass. That's the one state where editing src/ is allowed.
-    if state == "red":
+    # red  -> a failing test is driving this edit (GREEN phase).
+    # green -> >=1 passing test exists; treat as REFACTOR. The skill's REFACTOR
+    #          gate is responsible for confirming it's behaviour-preserving, not
+    #          new untested code -- the hook can't tell those apart.
+    if allowed:
         allow()
 
-    # green / none -> nothing red is driving this edit: a RED-before-GREEN
-    # violation. Block and explain.
-    if state in ("green", "none"):
-        deny(
-            "RED-before-GREEN: there is no failing test, so production code "
-            "may not be edited yet. Write a single failing test that drives "
-            "this change first, confirm it fails, then implement. (Enforced "
-            "by the require_failing_test.py PreToolUse hook.)"
-        )
+    # error carries the pytest output so the broken runner can be fixed.
+    if state == "error":
+        deny(reason + "\n\npytest output:\n" + output.strip())
 
-    # error -> pytest could not run a suite. Fail CLOSED: a broken test runner
-    # must not silently disable the gate. Surface the failure so it gets fixed.
-    deny(
-        "Could not determine test state -- pytest did not run a suite "
-        "(missing dependency, import error, or collection failure), so the "
-        "RED-before-GREEN gate is failing closed. Fix the test runner before "
-        "editing production code.\n\npytest output:\n" + output.strip()
-    )
+    # none -> no tests in play; nothing drives the edit and nothing to refactor.
+    deny(reason)
 
 
 if __name__ == "__main__":
