@@ -4,16 +4,26 @@ A copyable Python project template for building from Gherkin specs using autonom
 
 ## Quick start
 
+1. Copy the project:
 ```sh
 cp -R . ~/my-new-project
 cd ~/my-new-project
-
-# Add your scenarios to features/*.feature
-# Then run setup.sh (it validates that the harness can see them)
-./setup.sh
-
-# Finally: open Claude Code in this folder and type /auto-tdd
 ```
+
+2. Replace `features/example.feature` with your own scenarios
+
+3. Run setup.sh (it validates that the harness can see them):
+```sh
+./setup.sh
+```
+
+4. Open Claude Code in this folder and type 
+```sh
+/auto-tdd
+```
+
+5. Review `DEV_LOG.md` to see the decisions made for each cycle
+
 
 ## What it does
 
