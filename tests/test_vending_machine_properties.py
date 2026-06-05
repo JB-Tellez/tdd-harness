@@ -43,3 +43,46 @@ class TestRequirement2_1InsertCoin:
 
         assert success is True
         assert machine.balance == initial_balance + coin
+
+
+class TestRequirement2_1_5MultipleCoins:
+    """
+    EARS Requirement 2.1.5 (Implicit from 2.1):
+    Multiple valid coins inserted sequentially shall accumulate in the balance.
+    """
+
+    @given(coins=st.lists(st.sampled_from([1, 5, 10, 25, 50, 100]), min_size=1, max_size=20))
+    def test_multiple_coins_accumulate(self, coins):
+        """Inserting multiple valid coins accumulates their values."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+
+        for coin in coins:
+            success = machine.insert_coin(coin)
+            assert success is True
+
+        assert machine.balance == sum(coins)
+
+
+class TestRequirement2_2Cancel:
+    """
+    EARS Requirement 2.2 (Event-Driven):
+    When the user presses the cancel button, the vending machine shall return
+    all coins currently held in the session balance and reset the balance to zero.
+    """
+
+    @given(coins=st.lists(st.sampled_from([1, 5, 10, 25, 50, 100]), min_size=0, max_size=20))
+    def test_cancel_returns_all_coins_and_resets_balance(self, coins):
+        """Pressing cancel returns all accumulated coins and resets balance to zero."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+
+        for coin in coins:
+            machine.insert_coin(coin)
+
+        refunded = machine.cancel()
+
+        assert refunded == sum(coins)
+        assert machine.balance == 0
