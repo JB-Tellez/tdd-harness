@@ -11,11 +11,11 @@ class VendingMachine:
 
     def price(self, slot: str) -> Optional[int]:
         slot_data = self.slots.get(slot)
-        return slot_data["price"] if slot_data else None
+        return int(slot_data["price"]) if slot_data else None
 
     def name(self, slot: str) -> Optional[str]:
         slot_data = self.slots.get(slot)
-        return slot_data["name"] if slot_data else None
+        return str(slot_data["name"]) if slot_data else None
 
     def insert_coin(self, coin_cents: int) -> bool:
         if coin_cents not in {1, 5, 10, 25, 50, 100}:
@@ -32,8 +32,8 @@ class VendingMachine:
         slot_data = self.slots.get(slot)
         if slot_data is None:
             return False
-        price = slot_data["price"]
-        quantity = slot_data["quantity"]
+        price = int(slot_data["price"])
+        quantity = int(slot_data["quantity"])
         if quantity == 0 or self.balance < price:
             return False
         self.balance = 0
