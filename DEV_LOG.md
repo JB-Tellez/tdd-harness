@@ -89,9 +89,86 @@ Format per cycle:
 
 ---
 
+## Cycle 3 — "Insufficient funds regression guard"
+
+- **Scenario:** specs/vending-machine.md (Requirement 4.1, Unwanted Behavior) — *regression guard*
+- **RED:** N/A — test passes immediately (behavior implemented in Cycle 2)
+
+### Escalation — Design decision: Keep regression guard?
+
+**Developer approved keeping the test** because it independently pins both the rejection return value AND balance preservation when funds are insufficient — distinct from the Cycle 2 happy path that only exercised the True case.
+
+- **GREEN:** No new code needed; behavior already implemented.
+- **REFACTOR:** Skipped.
+- **Deglaze:** Accurate. Subagent correctly identified regression guard purpose.
+- **Commit:** `Add regression guard for insufficient funds rejection (EARS Req 4.1)`
+
+---
+
+## Cycle 4 — "Stock quantity parameter API"
+
+- **Scenario:** specs/vending-machine.md (Requirement 4.2, State-Driven) — *precursor*
+- **RED:** `tests/test_vending_machine_properties.py::TestRequirement4_2ZeroStockPrecursor::test_stock_slot_accepts_quantity` — fails with `TypeError: stock_slot() got unexpected keyword argument 'quantity'`
+
+### Escalation — RED gate (architectural review)
+
+**Developer response (verbatim):**
+
+> The commitment: `stock_slot()` must accept a `quantity` keyword argument, which means the `VendingMachine` class is shifting from storing only price per slot to storing both price and quantity. This is a fundamental change to the slot's data model.
+> ...
+> I accept this design. The commitment is reasonable:
+> 1. It's the minimal precursor for Requirement 4.2 (rejecting purchases when stock is zero).
+> 2. The test is honest about what it's testing — just that the parameter is accepted and the price is still retrievable.
+> 3. The `quantity=1` default in the test is defensible for a precursor (we're not yet testing quantity depletion, just that the machine can track it).
+> 
+> **Proceed to GREEN.**
+
+### GREEN gate escalation
+
+**Developer feedback:** Implementation was initially over-engineered (refactored to tuple storage). Corrected to minimal approach: accept `quantity` parameter with default=1, don't store yet.
+
+- **GREEN:** Added `quantity: int = 1` parameter to `stock_slot()` signature, parameter accepted but not stored.
+- **REFACTOR:** Skipped. No duplication or naming issues.
+- **Deglaze:** Accurate. Subagent identified API contract and backward compatibility.
+- **Commit:** `Add quantity parameter to stock_slot (EARS Req 4.2 precursor)`
+
+---
+
+## Cycle 5 — "Zero-stock rejection implementation"
+
+- **Scenario:** specs/vending-machine.md (Requirement 4.2, Unwanted Behavior) — *full behavior*
+- **RED:** `tests/test_vending_machine_properties.py::TestRequirement4_2ZeroStockRejection::test_purchase_rejected_when_zero_stock` — fails with `AssertionError: assert True is False` (purchase doesn't check quantity)
+
+### Escalation — RED gate (architectural review)
+
+**Developer response (verbatim):**
+
+> I accept commitments 1, 3, and 4—they're what the requirement describes. Those are sound.
+> 
+> I want to flag commitment 2: the data structure choice. Storing `{slot: price}` and quantity in a separate dict is fine. Storing `{slot: {"name": ..., "price": ..., "quantity": ...}}` is also fine. But I notice the test never calls `machine.get_quantity()` or similar—it only checks the side effect (purchase rejection). So the internal representation is genuinely flexible here. Don't lock it in unnecessarily; pick the simplest thing that makes the test pass.
+> 
+> **Proceed to GREEN.**
+
+- **GREEN:** Added `quantities: dict[str, int]` to track stock. Modified `stock_slot()` to store quantity. Modified `purchase()` to check `quantity == 0` as rejection condition. Tests: 10 passed.
+- **REFACTOR:** Identified unused `name` parameter in `stock_slot()` but skipped removal (would require changing all test call sites; out of scope for refactor gate).
+- **Deglaze:** Accurate. Subagent noted parallel data structure design and sync requirements.
+- **Commit:** `Implement zero-stock rejection (EARS Req 4.2)`
+
+---
+
 ## Status
 
-Cycle 2 complete. Moving to Cycle 3: rejection when insufficient funds (EARS Req 4.1).
+**COMPLETE: All EARS requirements implemented and tested.**
 
-Requirements 1, 2.1, 2.1.5, 2.2, 4.3 are complete and passing.
-Requirement 3 happy path complete. Still need: insufficient funds rejection (4.1) and zero stock rejection (4.2).
+✅ Requirement 1 (Display price): Cycle 0 (precursor)
+✅ Requirement 2.1 (Insert valid coin): Cycle 0 (precursor)
+✅ Requirement 2.1.5 (Multiple coins accumulate): Cycle 0 (precursor)
+✅ Requirement 2.2 (Cancel): Cycle 0 (precursor)
+✅ Requirement 3 (Purchase with change): Cycles 1–2
+✅ Requirement 4.1 (Reject insufficient funds): Cycle 3
+✅ Requirement 4.2 (Reject zero stock): Cycles 4–5
+✅ Requirement 4.3 (Invalid coin rejection): Cycle 0 (precursor)
+
+Test suite: 10 passing property-based tests covering all EARS scenarios.
+
+Decision log complete. Ready for review.
