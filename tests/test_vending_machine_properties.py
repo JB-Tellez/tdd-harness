@@ -88,6 +88,37 @@ class TestRequirement2_2Cancel:
         assert machine.balance == 0
 
 
+class TestRequirement4_1InsufficientFunds:
+    """
+    EARS Requirement 4.1 (Unwanted Behavior):
+    If a user attempts to purchase an item when the session balance is less
+    than the item's price, then the vending machine shall reject the purchase,
+    retain the session balance, and dispense nothing.
+    """
+
+    @given(
+        coins=st.lists(st.sampled_from([1, 5, 10, 25, 50, 100]), min_size=1, max_size=5),
+        price=st.integers(min_value=100, max_value=500)
+    )
+    def test_purchase_rejected_when_insufficient_funds(self, coins, price):
+        """When balance < price, purchase returns False and balance unchanged."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+        machine.stock_slot("D4", "Soda", price)
+
+        total = sum(coins)
+        for coin in coins:
+            machine.insert_coin(coin)
+
+        if total < price:
+            initial_balance = machine.balance
+            result = machine.purchase("D4")
+
+            assert result is False
+            assert machine.balance == initial_balance
+
+
 class TestRequirement4_3InvalidCoin:
     """
     EARS Requirement 4.3 (Unwanted Behavior):

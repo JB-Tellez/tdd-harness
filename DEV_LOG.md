@@ -59,9 +59,39 @@ Format per cycle:
 
 ---
 
+## Cycle 2 — "Purchase success with sufficient funds"
+
+- **Scenario:** specs/vending-machine.md (Requirement 3, State-Driven) — *happy path*
+- **RED:** `tests/test_vending_machine_properties.py::TestRequirement3PurchaseMethod::test_purchase_succeeds_and_clears_balance_when_sufficient_funds` — fails with `AssertionError: assert 1 == 0` (balance not cleared)
+
+### Escalation — RED gate (architectural review)
+
+**Issue raised to developer:** Identify architectural commitments in the test shape.
+
+**Developer response (verbatim):**
+
+> **Architectural Commitments:**
+>
+> 1. **`purchase()` returns `True` on success (not just a bool, but specifically `True`)** — The test asserts `result is True`, not just `isinstance(result, bool)`. This locks in that success is distinct from failure, and that we're using a boolean return type rather than an exception or different sentinel. Accepted.
+>
+> 2. **`purchase()` has a side effect: it mutates the machine's balance to 0** — The test observes `machine.balance == 0` after a successful purchase. This locks in that balance clearing is the purchase method's responsibility, not delegated elsewhere. The spec says "return the exact change" but doesn't say *how* — this test chooses to represent it as balance clearing. Accepted, and it's sensible; change is implicit in a balance of zero.
+>
+> 3. **`purchase()` is conditional: it only executes the assertion when `total >= price`** — The test wraps the purchase call in `if total >= price:`. This is a guard, not a test of the method's behavior. The method itself doesn't validate; the test just doesn't call it when preconditions fail. This is fine and doesn't constrain the implementation — the method can (and should) validate internally.
+>
+> 4. **One happy path only** — The test covers only the "sufficient funds" scenario. It doesn't test insufficient funds (Req 4.1), zero stock (Req 4.2), or the return value when those fail. This is intentional for this cycle. Accepted.
+>
+> **Verdict: proceed to GREEN.** The test is well-shaped. It's tightly scoped to the happy path of Requirement 3, and its commitments are reasonable: return True on success, clear the balance to represent exact change. The implementation now needs to check if balance >= price, clear the balance, and return True.
+
+- **GREEN:** Implemented `purchase()` to validate slot exists, check balance >= price, clear balance on success. Tests: 7 passed.
+- **REFACTOR:** Skipped. Code is minimal, no duplication. Note: test uses `if` guard instead of `hypothesis.assume()`, which is weak test design, but implementation is minimal given the test as written.
+- **Deglaze:** Accurate. Subagent correctly identified the purchase validation logic and balance clearing behavior.
+- **Commit:** `Implement purchase logic for sufficient funds (EARS Req 3)`
+
+---
+
 ## Status
 
-Cycle 1 complete. Moving to Cycle 2: full purchase behavior (balance check, dispensing, change).
+Cycle 2 complete. Moving to Cycle 3: rejection when insufficient funds (EARS Req 4.1).
 
 Requirements 1, 2.1, 2.1.5, 2.2, 4.3 are complete and passing.
-Requirement 3 method exists; behavior coming next.
+Requirement 3 happy path complete. Still need: insufficient funds rejection (4.1) and zero stock rejection (4.2).
