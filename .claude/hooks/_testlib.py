@@ -139,3 +139,19 @@ def workflow_enabled(project_dir):
             return bool(json.load(fh).get("enforce", False))
     except (OSError, ValueError):
         return False
+
+
+def tests_exist(project_dir):
+    """True if any .py test files exist under the project's tests/ dir.
+
+    When tests exist but pytest can't run them (e.g., import errors),
+    we still treat that as "tests are driving this edit" (RED phase),
+    rather than "no tests exist" (NONE phase).
+    """
+    tests_dir = os.path.join(project_dir, "tests")
+    if not os.path.isdir(tests_dir):
+        return False
+    for item in os.listdir(tests_dir):
+        if item.endswith(".py") and not item.startswith("_"):
+            return True
+    return False
