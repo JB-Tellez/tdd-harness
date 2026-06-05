@@ -17,3 +17,8 @@ class VendingMachine:
             return False
         self.balance += coin_cents
         return True
+
+    def cancel(self) -> int:
+        refund = self.balance
+        self.balance = 0
+        return refund
