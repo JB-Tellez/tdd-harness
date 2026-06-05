@@ -107,3 +107,28 @@ class TestRequirement4_3InvalidCoin:
 
         assert success is False
         assert machine.balance == initial_balance
+
+
+class TestRequirement3PurchaseMethod:
+    """
+    EARS Requirement 3 (State-Driven):
+    While the machine has stock of a selected item, when a user inserts an amount
+    of money equal to or greater than the item's price and presses purchase,
+    the vending machine shall dispense the item and return the exact change.
+
+    Precursor cycle: test that purchase() method exists and returns a bool.
+    """
+
+    @given(price=st.integers(min_value=1, max_value=500))
+    def test_purchase_method_exists(self, price):
+        """The purchase method exists and can be called."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+        machine.stock_slot("D4", "Soda", price)
+        machine.insert_coin(25)
+        machine.insert_coin(25)
+
+        result = machine.purchase("D4")
+
+        assert isinstance(result, bool)

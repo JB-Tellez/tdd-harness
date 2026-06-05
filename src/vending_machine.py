@@ -22,3 +22,6 @@ class VendingMachine:
         refund = self.balance
         self.balance = 0
         return refund
+
+    def purchase(self, slot: str) -> bool:
+        return True
