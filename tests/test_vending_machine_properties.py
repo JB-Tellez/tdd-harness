@@ -86,3 +86,24 @@ class TestRequirement2_2Cancel:
 
         assert refunded == sum(coins)
         assert machine.balance == 0
+
+
+class TestRequirement4_3InvalidCoin:
+    """
+    EARS Requirement 4.3 (Unwanted Behavior):
+    If a user inserts an invalid or unrecognized coin, then the vending machine
+    shall immediately reject and eject the coin, leaving the session balance unchanged.
+    """
+
+    @given(invalid_coin=st.integers().filter(lambda x: x not in {1, 5, 10, 25, 50, 100}))
+    def test_invalid_coin_rejected_balance_unchanged(self, invalid_coin):
+        """Inserting an invalid coin is rejected; balance remains unchanged."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+        initial_balance = machine.balance
+
+        success = machine.insert_coin(invalid_coin)
+
+        assert success is False
+        assert machine.balance == initial_balance
