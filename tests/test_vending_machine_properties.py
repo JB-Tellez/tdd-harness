@@ -132,3 +132,24 @@ class TestRequirement3PurchaseMethod:
         result = machine.purchase("D4")
 
         assert isinstance(result, bool)
+
+    @given(
+        coins=st.lists(st.sampled_from([1, 5, 10, 25, 50, 100]), min_size=1, max_size=10),
+        price=st.integers(min_value=1, max_value=500)
+    )
+    def test_purchase_succeeds_and_clears_balance_when_sufficient_funds(self, coins, price):
+        """When balance >= price, purchase returns True and clears the balance (change returned)."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+        machine.stock_slot("D4", "Soda", price)
+
+        total = sum(coins)
+        for coin in coins:
+            machine.insert_coin(coin)
+
+        if total >= price:
+            result = machine.purchase("D4")
+
+            assert result is True
+            assert machine.balance == 0

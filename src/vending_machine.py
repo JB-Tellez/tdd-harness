@@ -24,4 +24,8 @@ class VendingMachine:
         return refund
 
     def purchase(self, slot: str) -> bool:
+        price = self.slots.get(slot)
+        if price is None or self.balance < price:
+            return False
+        self.balance = 0
         return True
