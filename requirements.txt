@@ -1,5 +1,6 @@
 colorama==0.4.6
 docopt==0.6.2
+hypothesis==6.131.1
 iniconfig==2.3.0
 packaging==26.2
 pluggy==1.6.0
