@@ -35,7 +35,7 @@ For $ARGUMENTS:
    - **STOP. Show the user any proposed refactoring and wait for their approval before applying it.** If the user approves, apply the changes and run the test suite to confirm nothing broke. If the user says no refactoring is needed, skip this step — but only after they have said so.
    - The RED-before-GREEN gate hook permits production edits while the suite is green precisely so this step can run; the discipline that a green edit be a behavior-preserving refactor (not new untested code) is the human's to uphold here. If a refactor turns a test red, undo it — behavior changes belong in their own RED cycle.
 
-5. **COMMIT** — After each complete red-green-refactor pass:
+5. **COMMIT** — Whenever code changes (test or production), commit with a deglaze check:
    - **Deglaze check first**: Before suggesting a commit, perform the deglaze engagement check (see `.claude/skills/deglaze/SKILL.md`). List only the changed file path(s) and ask the human to explain the change in their own words. **Do NOT summarize, describe, paraphrase, or hint at what the change does — doing so defeats the purpose of the check, which is for the human to recall and articulate the change themselves.** After the human responds, evaluate their response and give brief feedback. This is non-blocking — proceed regardless of the response.
    - Then propose a concise commit message describing the behavior that was just implemented.
    - **STOP. Wait for user approval before committing.** If the user approves, create the commit. If the user declines, skip and continue.
