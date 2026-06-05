@@ -43,6 +43,7 @@ from _testlib import (  # noqa: E402
     project_dir_from_env,
     read_tool_input,
     run_pytest,
+    tests_exist,
     workflow_enabled,
 )
 
@@ -83,7 +84,7 @@ ERROR_REASON = (
 )
 
 
-def decide(state):
+def decide(state, tests_exist):
     """Map a test-suite state to an allow/deny decision for a production edit.
 
     Returns ``(allowed, reason)`` -- ``reason`` is ``None`` when allowed.
@@ -99,9 +100,15 @@ def decide(state):
                        skill's REFACTOR gate owns that confirmation.
       none  -> deny  : zero tests exist; nothing drives the edit and there is
                        nothing to refactor. Write a failing test first.
-      error -> deny  : pytest could not run a suite; fail closed.
+      error -> allow if tests_exist, deny otherwise : if test files exist but
+                       pytest can't run them (import error, dependency missing),
+                       treat as RED -- tests exist and are driving the edit,
+                       they're just currently broken. If no tests exist at all,
+                       fail closed.
     """
     if state in ("red", "green"):
+        return True, None
+    if state == "error" and tests_exist:
         return True, None
     if state == "none":
         return False, NONE_REASON
@@ -125,12 +132,14 @@ def main():
         allow()
 
     state, output = run_pytest(project_dir)
-    allowed, reason = decide(state)
+    test_files_exist = tests_exist(project_dir)
+    allowed, reason = decide(state, test_files_exist)
 
     # red  -> a failing test is driving this edit (GREEN phase).
     # green -> >=1 passing test exists; treat as REFACTOR. The skill's REFACTOR
     #          gate is responsible for confirming it's behaviour-preserving, not
     #          new untested code -- the hook can't tell those apart.
+    # error with tests -> tests exist but pytest can't run them; treat as RED.
     if allowed:
         allow()
 
