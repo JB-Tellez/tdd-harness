@@ -4,10 +4,12 @@ from typing import Optional
 class VendingMachine:
     def __init__(self):
         self.slots: dict[str, int] = {}
+        self.quantities: dict[str, int] = {}
         self.balance = 0
 
     def stock_slot(self, slot: str, name: str, price: int, quantity: int = 1) -> None:
         self.slots[slot] = price
+        self.quantities[slot] = quantity
 
     def price(self, slot: str) -> Optional[int]:
         return self.slots.get(slot)
@@ -25,7 +27,8 @@ class VendingMachine:
 
     def purchase(self, slot: str) -> bool:
         price = self.slots.get(slot)
-        if price is None or self.balance < price:
+        quantity = self.quantities.get(slot, 1)
+        if price is None or quantity == 0 or self.balance < price:
             return False
         self.balance = 0
         return True

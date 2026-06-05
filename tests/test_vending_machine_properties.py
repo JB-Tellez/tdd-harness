@@ -88,6 +88,30 @@ class TestRequirement2_2Cancel:
         assert machine.balance == 0
 
 
+class TestRequirement4_2ZeroStockRejection:
+    """
+    EARS Requirement 4.2 (Unwanted Behavior):
+    If a user attempts to purchase an item when the machine has zero stock,
+    then the vending machine shall reject the purchase, retain the session
+    balance, and dispense nothing.
+    """
+
+    @given(price=st.integers(min_value=1, max_value=500))
+    def test_purchase_rejected_when_zero_stock(self, price):
+        """When item has zero stock, purchase returns False and balance unchanged."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+        machine.stock_slot("D4", "Soda", price, quantity=0)
+        machine.insert_coin(100)
+
+        initial_balance = machine.balance
+        result = machine.purchase("D4")
+
+        assert result is False
+        assert machine.balance == initial_balance
+
+
 class TestRequirement4_2ZeroStockPrecursor:
     """
     EARS Requirement 4.2 (Unwanted Behavior):
