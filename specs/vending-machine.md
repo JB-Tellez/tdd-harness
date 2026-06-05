@@ -5,7 +5,7 @@ This document defines the functional requirements for the core transaction engin
 ## 1. Ubiquitous Requirements (Universal System Rules)
 
 * The vending machine **shall** maintain and display the current session balance at all times.
-* The vending machine **shall** display the price of a selected item alongside the current session balance.
+* The vending machine **shall** display the name and price of a selected item alongside the current session balance.
 * Valid coin denominations **shall** be: $0.01 (penny), $0.05 (nickel), $0.10 (dime), $0.25 (quarter).
 * The vending machine **shall** support coin storage with the following initial capacity per denomination: 100 quarters, 100 dimes, 100 nickels, 100 pennies.
 
