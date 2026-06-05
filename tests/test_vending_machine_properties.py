@@ -6,6 +6,30 @@ import pytest
 from hypothesis import given, strategies as st
 
 
+class TestRequirement1DisplayItemName:
+    """
+    EARS Requirement 1 (Ubiquitous):
+    The vending machine shall display the name and price of a selected item
+    alongside the current session balance.
+
+    Precursor cycle: Test that item name can be retrieved.
+    """
+
+    @given(
+        name=st.text(min_size=1, max_size=50),
+        price=st.integers(min_value=1, max_value=500)
+    )
+    def test_displays_item_name_when_slot_selected(self, name, price):
+        """When a slot is selected, the name of the item in that slot is displayed."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+        machine.stock_slot("D4", name, price)
+
+        displayed_name = machine.name("D4")
+        assert displayed_name == name
+
+
 class TestRequirement1DisplayPrice:
     """
     EARS Requirement 1 (Ubiquitous):
