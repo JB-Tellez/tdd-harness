@@ -6,7 +6,7 @@ class VendingMachine:
         self.slots: dict[str, int] = {}
         self.balance = 0
 
-    def stock_slot(self, slot: str, name: str, price: int) -> None:
+    def stock_slot(self, slot: str, name: str, price: int, quantity: int = 1) -> None:
         self.slots[slot] = price
 
     def price(self, slot: str) -> Optional[int]:

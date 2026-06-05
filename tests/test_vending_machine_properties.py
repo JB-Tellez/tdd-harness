@@ -88,6 +88,27 @@ class TestRequirement2_2Cancel:
         assert machine.balance == 0
 
 
+class TestRequirement4_2ZeroStockPrecursor:
+    """
+    EARS Requirement 4.2 (Unwanted Behavior):
+    If a user attempts to purchase an item when the machine has zero stock,
+    then the vending machine shall reject the purchase, retain the session
+    balance, and dispense nothing.
+
+    Precursor cycle: stock_slot needs to accept and track quantity.
+    """
+
+    @given(price=st.integers(min_value=1, max_value=500))
+    def test_stock_slot_accepts_quantity(self, price):
+        """stock_slot can be called with a quantity parameter."""
+        from vending_machine import VendingMachine
+
+        machine = VendingMachine()
+        machine.stock_slot("D4", "Soda", price, quantity=1)
+
+        assert machine.price("D4") == price
+
+
 class TestRequirement4_1InsufficientFunds:
     """
     EARS Requirement 4.1 (Unwanted Behavior):
